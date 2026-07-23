@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model SesionJuego {
+  id          String   @id @default(uuid())
+  creadoEn    DateTime @default(now())
+
+  respuestasTarea1  RespuestaTarea1[]
+  decisiones        DecisionTarea2[]
+  justificaciones   JustificacionTarea3[]
+  respuestasTarea4  RespuestaTarea4[]
+  resultado         Resultado?
+}
+
+model RespuestaTarea1 {
+  id          String   @id @default(uuid())
+  sesionId    String
+  pregunta    Int
+  texto       String
+  score       Float
+  nivel       String
+  creadoEn    DateTime @default(now())
+
+  sesion      SesionJuego @relation(fields: [sesionId], references: [id])
+}
+
+model DecisionTarea2 {
+  id              String   @id @default(uuid())
+  sesionId        String
+  personajeId     Int
+  personajeNombre String
+  decision        String
+  creadoEn        DateTime @default(now())
+
+  sesion          SesionJuego @relation(fields: [sesionId], references: [id])
+}
+
+model JustificacionTarea3 {
+  id              String   @id @default(uuid())
+  sesionId        String
+  personajeId     Int
+  personajeNombre String
+  texto           String
+  creadoEn        DateTime @default(now())
+
+  sesion          SesionJuego @relation(fields: [sesionId], references: [id])
+}
+
+model RespuestaTarea4 {
+  id          String   @id @default(uuid())
+  sesionId    String
+  pregunta    Int
+  texto       String
+  score       Float
+  nivel       String
+  creadoEn    DateTime @default(now())
+
+  sesion      SesionJuego @relation(fields: [sesionId], references: [id])
+
+  @@unique([sesionId, pregunta])
+}
+
+model Resultado {
+  id            String   @id @default(uuid())
+  sesionId      String   @unique
+  perfil        String
+  totalCielo    Int
+  totalInfierno Int
+  creadoEn      DateTime @default(now())
+
+  sesion        SesionJuego @relation(fields: [sesionId], references: [id])
+}

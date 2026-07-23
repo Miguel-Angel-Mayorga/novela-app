@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+body {
+  margin: 0;
+  padding: 0;
+}
+
+.btn-menu {
+  transition: all 0.2s;
+}
+
+.btn-menu:hover {
+  transform: scale(1.05);
+  filter: brightness(1.2);
+}
