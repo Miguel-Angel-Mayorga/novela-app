@@ -15,7 +15,7 @@ const perfiles = [
     ],
     creencia: "\"La verdad siempre encuentra su camino, pero el proceso es lo que define el alma.\"",
     citas: [
-      { texto: "Elena siempre busca el bien mayor, incluso si eso significa ir en contra de la corriente.", autor: "Vecino", tipo: "favorable" },
+      { texto: "Elena siempre busca el bien mayor, incluso si eso significa ir en contra de la corriente.", autor: "Incógnito", tipo: "favorable" },
       { texto: "Ella es una manipuladora con una sonrisa. Siempre consigue lo que quiere.", autor: "Antiguo colega", tipo: "critica" }
     ],
     ambiguo: "Se le vio reunirse en secreto con un desarrollador inmobiliario poco antes de la protesta contra el centro comercial."
@@ -112,147 +112,181 @@ const perfiles = [
   }
 ]
 
-function iniciales(nombre: string) {
-  return nombre.split(" ").filter((_, i) => i === 0 || i === nombre.split(" ").length - 1).map(n => n[0]).join("").toUpperCase().slice(0, 2)
+type LineaDialogo = {
+  hablante: string
+  texto: string
+  avatar: "personaje" | "generico"
+  personajeIndex: number
 }
 
-const seccion = (titulo: string) => (
-  <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
-    <span style={{ fontSize: "10px", letterSpacing: "3px", color: "#d4a843", textTransform: "uppercase", whiteSpace: "nowrap" }}>{titulo}</span>
-    <div style={{ flex: 1, height: "1px", background: "rgba(212,168,67,0.25)" }} />
-  </div>
-)
+// Convierte cada perfil en una secuencia de líneas de diálogo:
+// el expediente presenta al personaje y sus acciones, el personaje habla con
+// su propia cita, y los terceros aportan sus testimonios.
+function construirDialogo(perfil: typeof perfiles[number], personajeIndex: number): LineaDialogo[] {
+  const lineas: LineaDialogo[] = []
+
+  lineas.push({
+    hablante: "Expediente",
+    texto: `${perfil.nombre} — "${perfil.apodo}". ${perfil.descripcion}`,
+    avatar: "generico",
+    personajeIndex
+  })
+
+  perfil.acciones.forEach(a => lineas.push({ hablante: "Expediente", texto: a, avatar: "generico", personajeIndex }))
+
+  lineas.push({ hablante: perfil.nombre, texto: perfil.creencia, avatar: "personaje", personajeIndex })
+
+  perfil.citas.forEach(c => lineas.push({ hablante: c.autor, texto: c.texto, avatar: "generico", personajeIndex }))
+
+  lineas.push({ hablante: "Expediente", texto: perfil.ambiguo, avatar: "generico", personajeIndex })
+
+  return lineas
+}
+
+const dialogoCompleto: LineaDialogo[] = perfiles.flatMap((p, i) => construirDialogo(p, i))
+
+function IconoPersona() {
+  return (
+    <svg viewBox="0 0 24 24" width="30" height="30" fill="#e8e4d9">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 20.5c0-4.4 3.6-7 8-7s8 2.6 8 7V21H4v-.5z" />
+    </svg>
+  )
+}
+
+function IconoFlecha({ direccion = "der" as "der" | "izq" }) {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#0d0d14" strokeWidth={2.5}
+      style={{ transform: direccion === "izq" ? "rotate(180deg)" : undefined }}>
+      <path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
 
 export default function Perfiles() {
   const navigate = useNavigate()
-  const [perfilActivo, setPerfilActivo] = useState(0)
-  const [leidos, setLeidos] = useState<number[]>([0])
+  const [indice, setIndice] = useState(0)
 
-  const perfil = perfiles[perfilActivo]
-  const todosLeidos = leidos.length === perfiles.length
+  const linea = dialogoCompleto[indice]
+  const perfilActual = perfiles[linea.personajeIndex]
+  const esUltima = indice === dialogoCompleto.length - 1
+  const esPrimera = indice === 0
 
-  function handleSeleccionar(i: number) {
-    setPerfilActivo(i)
-    if (!leidos.includes(i)) setLeidos(prev => [...prev, i])
-  }
-
-  function handleComenzar() {
-    if (!todosLeidos) {
-      const siguiente = (perfilActivo + 1) % perfiles.length
-      handleSeleccionar(siguiente)
+  function siguiente() {
+    if (esUltima) {
+      navigate("/tarea1")
       return
     }
-    navigate("/tarea1")
+    setIndice(i => i + 1)
+  }
+
+  function anterior() {
+    if (!esPrimera) setIndice(i => i - 1)
   }
 
   return (
-    <main style={{ height: "100vh", display: "flex", background: "#0d0d14", color: "#e8e4d9", fontFamily: "'Georgia', serif", overflow: "hidden" }}>
+    <main style={{ height: "100vh", width: "100vw", position: "relative", overflow: "hidden", background: "#0d0d14", fontFamily: "'Georgia', serif" }}>
+      <video
+        src="/Final_Render.mp4"
+        autoPlay
+        muted
+        loop
+        playsInline
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+      />
 
-      {/* Sidebar */}
-      <div style={{ width: "200px", borderRight: "1px solid rgba(212,168,67,0.15)", display: "flex", flexDirection: "column", flexShrink: 0 }}>
-        <div style={{ padding: "24px 16px 16px", borderBottom: "1px solid rgba(212,168,67,0.15)" }}>
-          <p style={{ fontSize: "9px", letterSpacing: "3px", color: "rgba(212,168,67,0.6)", textTransform: "uppercase", marginBottom: "2px" }}>Expediente</p>
-          <p style={{ fontSize: "13px", color: "#d4a843", letterSpacing: "1px" }}>Perfiles</p>
-        </div>
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(13,13,20,0.55) 0%, rgba(13,13,20,0) 40%)" }} />
 
-        <div style={{ flex: 1, overflowY: "auto", padding: "8px" }}>
-          {perfiles.map((p, i) => {
-            const activo = perfilActivo === i
-            const leido = leidos.includes(i)
-            return (
-              <button key={p.id} onClick={() => handleSeleccionar(i)} style={{ width: "100%", background: activo ? "rgba(212,168,67,0.1)" : "transparent", border: activo ? "1px solid rgba(212,168,67,0.3)" : "1px solid transparent", borderRadius: "8px", padding: "10px 12px", cursor: "pointer", display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px", textAlign: "left", transition: "all .2s" }}>
-                <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: activo ? "rgba(212,168,67,0.2)" : "rgba(255,255,255,0.06)", border: `1px solid ${activo ? "rgba(212,168,67,0.5)" : "rgba(255,255,255,0.1)"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", fontWeight: "bold", color: activo ? "#d4a843" : "rgba(255,255,255,0.4)", flexShrink: 0, fontFamily: "sans-serif" }}>
-                  {iniciales(p.nombre)}
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: "12px", color: activo ? "#e8e4d9" : "rgba(232,228,217,0.6)", fontWeight: activo ? "bold" : "normal", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.nombre}</div>
-                  <div style={{ fontSize: "10px", color: "rgba(232,228,217,0.35)", fontStyle: "italic", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.apodo}</div>
-                </div>
-                {leido && <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#4ade80", flexShrink: 0, marginLeft: "auto" }} />}
-              </button>
-            )
-          })}
-        </div>
+      {/* Progreso */}
+      <div style={{
+        position: "absolute", top: "24px", right: "32px",
+        fontSize: "11px", letterSpacing: "2px", textTransform: "uppercase",
+        color: "rgba(232,228,217,0.75)",
+        background: "rgba(13,13,20,0.5)", padding: "6px 16px", borderRadius: "20px",
+        border: "1px solid rgba(212,168,67,0.3)"
+      }}>
+        Personaje {linea.personajeIndex + 1} / {perfiles.length}
       </div>
 
-      {/* Columna info */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "40px 48px 60px", borderRight: "1px solid rgba(212,168,67,0.1)" }}>
+      {/* Cuadro de diálogo */}
+      <div style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", bottom: "min(4vh, 48px)", width: "min(92vw, 1040px)" }}>
 
-        <p style={{ fontSize: "10px", letterSpacing: "3px", color: "rgba(212,168,67,0.6)", textTransform: "uppercase", marginBottom: "12px" }}>
-          Perfil {perfil.id} de {perfiles.length}
-        </p>
-        <h1 style={{ fontSize: "38px", fontWeight: "normal", marginBottom: "4px", letterSpacing: "1px" }}>{perfil.nombre}</h1>
-        <p style={{ fontSize: "15px", color: "#d4a843", fontStyle: "italic", marginBottom: "32px" }}>{perfil.apodo}</p>
+        <div style={{ display: "flex", alignItems: "flex-end", gap: "10px" }}>
+          <button
+            onClick={anterior}
+            disabled={esPrimera}
+            style={{
+              width: "26px", height: "26px", borderRadius: "50%", flexShrink: 0, marginBottom: "12px",
+              background: "rgba(212,168,67,0.15)", border: "1px solid rgba(212,168,67,0.5)",
+              cursor: esPrimera ? "default" : "pointer", opacity: esPrimera ? 0.35 : 1,
+              display: "flex", alignItems: "center", justifyContent: "center"
+            }}
+          >
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#d4a843" strokeWidth={2.5}>
+              <path d="M15 6l-6 6 6 6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
 
-        <div style={{ marginBottom: "32px" }}>
-          {seccion("Descripción General")}
-          <p style={{ fontSize: "14px", lineHeight: 1.8, color: "rgba(232,228,217,0.8)" }}>{perfil.descripcion}</p>
-        </div>
-
-        <div style={{ marginBottom: "32px" }}>
-          {seccion("Acciones Significativas")}
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-            {perfil.acciones.map((a, i) => (
-              <div key={i} style={{ display: "flex", gap: "16px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "8px", padding: "14px 16px", alignItems: "flex-start" }}>
-                <span style={{ fontSize: "11px", color: "#d4a843", fontFamily: "sans-serif", fontWeight: "bold", minWidth: "24px", marginTop: "1px" }}>0{i + 1}</span>
-                <p style={{ fontSize: "14px", lineHeight: 1.7, color: "rgba(232,228,217,0.85)", margin: 0 }}>{a}</p>
-              </div>
-            ))}
+          <div style={{
+            display: "inline-block",
+            background: "linear-gradient(to right, rgba(58,20,68,0.95) 0%, #0a0610 75%)",
+            border: "3px solid #d4a843",
+            borderBottom: "none",
+            padding: "14px 40px 14px 106px",
+            clipPath: "polygon(0 0, 100% 0, calc(100% - 30px) 100%, 0 100%)",
+            fontSize: "16px", color: "#e8e4d9", letterSpacing: "0.5px"
+          }}>
+            {linea.hablante}
           </div>
         </div>
 
-        <div style={{ marginBottom: "32px" }}>
-          {seccion("Filosofía")}
-          <blockquote style={{ borderLeft: "3px solid #d4a843", paddingLeft: "20px", margin: 0, fontSize: "15px", fontStyle: "italic", color: "rgba(232,228,217,0.75)", lineHeight: 1.8 }}>
-            {perfil.creencia}
-          </blockquote>
-        </div>
-
-        <div style={{ marginBottom: "32px" }}>
-          {seccion("Citas de Terceros")}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-            {perfil.citas.map((c, i) => (
-              <div key={i} style={{ background: c.tipo === "favorable" ? "rgba(74,222,128,0.05)" : "rgba(248,113,113,0.05)", border: `1px solid ${c.tipo === "favorable" ? "rgba(74,222,128,0.2)" : "rgba(248,113,113,0.2)"}`, borderRadius: "8px", padding: "16px" }}>
-                <span style={{ fontSize: "9px", letterSpacing: "2px", textTransform: "uppercase", color: c.tipo === "favorable" ? "#4ade80" : "#f87171", fontFamily: "sans-serif", display: "block", marginBottom: "10px" }}>
-                  {c.tipo === "favorable" ? "▲ Favorable" : "▼ Crítica"}
-                </span>
-                <p style={{ fontSize: "13px", fontStyle: "italic", lineHeight: 1.7, color: "rgba(232,228,217,0.8)", marginBottom: "10px" }}>"{c.texto}"</p>
-                <p style={{ fontSize: "11px", color: "rgba(232,228,217,0.35)" }}>— {c.autor}</p>
-              </div>
-            ))}
+        <div style={{ display: "flex", alignItems: "stretch", position: "relative" }}>
+          {/* Avatar */}
+          <div style={{
+            width: "92px", height: "92px", borderRadius: "50%",
+            background: "#0a0610", border: "3px solid #d4a843",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            flexShrink: 0, marginRight: "-46px", zIndex: 2, marginTop: "26px",
+            overflow: "hidden", boxShadow: "0 0 0 5px #0d0d14"
+          }}>
+            {linea.avatar === "personaje" ? (
+              <img src={perfilActual.imagen} alt={perfilActual.nombre} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
+            ) : (
+              <IconoPersona />
+            )}
           </div>
-        </div>
 
-        <div style={{ marginBottom: "40px" }}>
-          {seccion("Información Ambigua")}
-          <div style={{ background: "rgba(212,168,67,0.06)", border: "1px solid rgba(212,168,67,0.3)", borderRadius: "8px", padding: "16px 20px", display: "flex", gap: "14px", alignItems: "flex-start" }}>
-            <span style={{ fontSize: "16px", marginTop: "1px" }}>⚠</span>
-            <p style={{ fontSize: "14px", lineHeight: 1.7, color: "rgba(232,228,217,0.8)", margin: 0 }}>{perfil.ambiguo}</p>
+          {/* Caja de texto */}
+          <div style={{
+            flex: 1,
+            background: "radial-gradient(ellipse at 25% 15%, #33163c 0%, #0a0610 68%)",
+            border: "3px solid #d4a843",
+            clipPath: "polygon(0 0, calc(100% - 48px) 0, 100% 48px, 100% 100%, 0 100%)",
+            padding: "36px 72px 36px 106px",
+            minHeight: "210px",
+            display: "flex",
+            alignItems: "flex-start"
+          }}>
+            <p style={{ fontSize: "15px", lineHeight: 1.8, color: "rgba(232,228,217,0.92)", margin: 0 }}>
+              {linea.texto}
+            </p>
           </div>
-        </div>
 
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <p style={{ fontSize: "12px", color: "rgba(232,228,217,0.3)", fontFamily: "sans-serif" }}>
-            {leidos.length} de {perfiles.length} perfiles leídos
-          </p>
-          <button onClick={handleComenzar} style={{ padding: "12px 32px", fontSize: "14px", background: todosLeidos ? "rgba(212,168,67,0.15)" : "transparent", border: `1px solid ${todosLeidos ? "#d4a843" : "rgba(212,168,67,0.4)"}`, color: todosLeidos ? "#d4a843" : "rgba(212,168,67,0.6)", cursor: "pointer", borderRadius: "6px", letterSpacing: "1px", fontFamily: "'Georgia', serif", transition: "all .2s" }}>
-            {todosLeidos ? "Comenzar Juicio →" : "Siguiente perfil →"}
+          {/* Botón siguiente */}
+          <button
+            onClick={siguiente}
+            style={{
+              position: "absolute", right: "-22px", top: "50%", transform: "translateY(-50%)",
+              width: "44px", height: "44px", borderRadius: "50%",
+              background: "#d4a843", border: "1px solid #f0cf7a",
+              cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+              boxShadow: "0 0 0 4px #0d0d14"
+            }}
+          >
+            <IconoFlecha />
           </button>
         </div>
       </div>
-
-      {/* Columna imagen */}
-      <div style={{ width: "30%", flexShrink: 0, position: "relative", overflow: "hidden" }}>
-        {perfil.imagen ? (
-          <img src={perfil.imagen} alt={perfil.nombre} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top", display: "block" }} />
-        ) : (
-          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.02)" }}>
-            <span style={{ fontSize: "80px", color: "rgba(212,168,67,0.1)", fontFamily: "sans-serif", fontWeight: "bold" }}>{iniciales(perfil.nombre)}</span>
-          </div>
-        )}
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, rgba(13,13,20,0.3) 0%, transparent 30%)" }} />
-      </div>
-
     </main>
   )
 }

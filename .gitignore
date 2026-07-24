@@ -41,3 +41,6 @@ yarn-error.log*
 next-env.d.ts
 
 /lib/generated/prisma
+
+# video pesado (>100MB), supera el límite de GitHub — se maneja fuera del repo
+frontend/public/Final_Render.mp4
